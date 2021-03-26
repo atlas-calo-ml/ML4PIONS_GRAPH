@@ -18,7 +18,7 @@ torch.manual_seed(0)
 
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 cuda_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu' )
 
 print('cuda_device : ', cuda_device)

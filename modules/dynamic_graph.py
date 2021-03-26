@@ -6,6 +6,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F_n
 
+import os, sys
+
+
 import dgl
 from dgl import backend as F
 import dgl.function as fn
@@ -89,12 +92,15 @@ class EdgeConv(nn.Module):
                 g_new = dgl.knn_graph(g.ndata['x'] , n_part)
         else : 
                 g_new = dgl.knn_graph(g.ndata['x'] , self.k)
-        
+       
+        dev = g.device.type
+        g_new = g_new.to(dev) 
         g_new.ndata['x'] = g.ndata['x']
         g_new.ndata['en'] = g.ndata['en']
-        
+
+        dev = g.device.type        
         del g
-        return g_new 
+        return g_new
 
 
 # --- the full dynamic edgeconv model ---- #
