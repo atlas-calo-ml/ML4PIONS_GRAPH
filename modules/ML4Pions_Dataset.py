@@ -259,10 +259,7 @@ def collate_graphs(event_list) :
     energy_list = []
     
     for ib in range(n_batch) : 
-        
-        # if(event_list[ib]['truth_E'][0].item() <= 0.) : 
-        #     print('Truth list : ', event_list[ib]['truth_E'])
-        #     continue
+       
         gr_list = event_list[ib]['gr']
         tr_elist = event_list[ib]['truth_E']
         #energy_list.append(event_list[ib]['truth_E'])
