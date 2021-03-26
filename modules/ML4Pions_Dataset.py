@@ -26,7 +26,7 @@ class MLPionsDataset_KNN(Dataset):
         self.cell_geo_tree = self.f['CellGeo;1']
         
         if(num_ev == -1) : 
-            self.n_events = self.ev_tree.n_events
+            self.n_events = self.ev_tree.num_entries
         else : 
             self.n_events = num_ev
 

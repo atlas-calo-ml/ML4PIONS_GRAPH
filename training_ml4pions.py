@@ -18,7 +18,7 @@ torch.manual_seed(0)
 
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 cuda_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu' )
 
 print('cuda_device : ', cuda_device)
@@ -32,14 +32,14 @@ cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIG
                'cluster_CENTER_LAMBDA', 'cluster_ISOLATION',  
               ]
 
-file_name_train = '../../user.angerami.24559744.OutputStream._000335.root'
-file_name_valid = '../../user.angerami.24559744.OutputStream._000335.root'
+file_name_train = 'samples/ml4pions_training.root'
+file_name_valid = 'samples/ml4pions_validation.root'
 
-train_data = MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var, num_ev=200)
-valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=cluster_var, num_ev=200)
+train_data = MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var, num_ev=-1)
+valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=cluster_var, num_ev=-1)
 
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=3, shuffle=True,collate_fn=collate_graphs, num_workers=0)
-valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=3, shuffle=False,collate_fn=collate_graphs, num_workers=0)
+train_loader = torch.utils.data.DataLoader(train_data, batch_size=5, shuffle=True,collate_fn=collate_graphs, num_workers=0)
+valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=5, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
 model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
 #model = nn.DataParallel(model)
