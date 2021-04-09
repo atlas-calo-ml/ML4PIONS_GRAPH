@@ -52,7 +52,6 @@ class MLPionsDataset_KNN(Dataset):
     def get_single_event(self,event_idx):
 
         # ------- building the cluster graph ---------- #
-        grad_bool = False
         
         cluster_cell_ID = self.ev_tree['cluster_cell_ID'].array(entry_start=event_idx,entry_stop=event_idx+1,library='np')[0]
         cluster_cell_E = self.ev_tree['cluster_cell_E'].array(entry_start=event_idx,entry_stop=event_idx+1,library='np')[0]
@@ -82,9 +81,9 @@ class MLPionsDataset_KNN(Dataset):
             cell_E = np.array(cluster_cell_E[ic])
             cell_idx = np.array(cluster_cell_ID[ic])
             
-            cluster_cell_pos = torch.tensor([self.id_to_position[x] for x in cell_idx], requires_grad=grad_bool)
-            cluster_cell_deta = torch.tensor([self.id_to_deta[x] for x in cell_idx], requires_grad=grad_bool)
-            cluster_cell_dphi = torch.tensor([self.id_to_dphi[x] for x in cell_idx], requires_grad=grad_bool)
+            cluster_cell_pos = torch.tensor([self.id_to_position[x] for x in cell_idx])
+            cluster_cell_deta = torch.tensor([self.id_to_deta[x] for x in cell_idx])
+            cluster_cell_dphi = torch.tensor([self.id_to_dphi[x] for x in cell_idx])
             
             n_part = len(cluster_cell_pos)
             
@@ -95,7 +94,7 @@ class MLPionsDataset_KNN(Dataset):
                 
             knn_g.ndata['x'] = cluster_cell_pos
             #knn_g.ndata['en'] = torch.tensor(cell_E)
-            cell_E = torch.tensor(cell_E, requires_grad=grad_bool)
+            cell_E = torch.tensor(cell_E)
 
             # for ivar in cluster_var : 
             #     print( ivar + ' shape : ', cluster_var_dict[ivar][ic] )

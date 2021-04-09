@@ -151,5 +151,5 @@ class Dynamic_Graph_Model(nn.Module):
                 e_array = self.latent_project(torch.cat(e_array, dim=1))
                 out_energy.append(e_array[0])
                 
-            return F_n.relu( torch.cat( out_energy ) )
+            return  torch.cat( out_energy ) 
 

@@ -18,6 +18,14 @@ torch.manual_seed(0)
 
 import os, sys
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--model_name", help="choose the model type", type=str)
+args = parser.parse_args()
+
+model_name = args.model_name
+
+
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 cuda_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu' )
 
@@ -41,7 +49,12 @@ valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=c
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=5, shuffle=True,collate_fn=collate_graphs, num_workers=0)
 valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=5, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
-model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
+if(model_name = 'edgeconv') : 
+    model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
+    model_name = 'model_DynamicGraph.pt'
+else : 
+    model = Graph_Attention_Model(num_heads = 5, feature_dims = [10, 15, 12, 8], input_names=cluster_var)
+    model_name = 'model_AttentionGraph.pt'
 #model = nn.DataParallel(model)
 model.to(cuda_device)
 
@@ -127,7 +140,7 @@ for epoch in tqdm(range(1, n_epochs+1)):
         print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
         valid_loss_min,
         valid_loss))
-        torch.save(model.state_dict(), 'model_DynamicGraph.pt')
+        torch.save(model.state_dict(), model_name)
         valid_loss_min = valid_loss
             
 # ---- end of script ------ # 
