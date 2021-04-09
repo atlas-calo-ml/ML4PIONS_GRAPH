@@ -68,7 +68,7 @@ class MLPionsDataset_KNN(Dataset):
 
         for ivar in self.cluster_var : 
             cluster_var_dict[ivar] =\
-             ( torch.tensor(self.ev_tree[ivar].array(entry_start=event_idx,entry_stop=event_idx+1,library='np')[0], requires_grad=grad_bool)
+             ( torch.tensor(self.ev_tree[ivar].array(entry_start=event_idx,entry_stop=event_idx+1,library='np')[0])
                 - self.cluster_var_dict_musig[ivar]['mean']
                 )/self.cluster_var_dict_musig[ivar]['std']
             

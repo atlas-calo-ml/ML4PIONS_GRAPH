@@ -36,7 +36,7 @@ cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIG
 
 file_name_test = 'samples/ml4pions_test.root'
 
-test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=1000)
+test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=10)
 
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
@@ -45,6 +45,10 @@ model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4,
 model.to(cuda_device)
 
 model.load_state_dict(torch.load('model_DynamicGraph.pt'))
+
+param_numb = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print('Total parameters : ', param_numb)
+
 model.eval()
 
 pred_energy, target_energy = [], []
@@ -87,7 +91,7 @@ print('total mean R : ', resp_tot.mean() )
 print('total std R : ', resp_tot.std() )
 
 
-hf = h5py.File('PredictionFile_DynamicGraph.h5', 'w')
+hf = h5py.File('PredictionFile_DynamicGraph_S.h5', 'w')
 
 hf.create_dataset('pred_energy', data=pred_energy, compression='lzf')
 hf.create_dataset('target_energy', data=target_energy, compression='lzf')

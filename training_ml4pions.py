@@ -34,6 +34,7 @@ print('cuda_device : ', cuda_device)
 from modules.ML4Pions_Dataset import  MLPionsDataset_KNN, collate_graphs
 
 from modules.dynamic_graph import Dynamic_Graph_Model
+from modules.attention_graph import Graph_Attention_Model
 
 cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIGHT',
                'cluster_DM_WEIGHT', 'cluster_CENTER_MAG', 'cluster_FIRST_ENG_DENS', 
@@ -49,7 +50,7 @@ valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=c
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=5, shuffle=True,collate_fn=collate_graphs, num_workers=0)
 valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=5, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
-if(model_name = 'edgeconv') : 
+if(model_name == 'edgeconv') : 
     model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
     model_name = 'model_DynamicGraph.pt'
 else : 
