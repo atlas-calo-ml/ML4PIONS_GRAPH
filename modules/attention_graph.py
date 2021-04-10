@@ -9,17 +9,18 @@ import math
 
 from modules.mlp import build_mlp
 
-def src_dot_dst(src_field, dst_field, out_field):
-    def func(edges):
-        return {out_field: (edges.src[src_field] * edges.dst[dst_field]).sum(-1, keepdim=True)}
-    return func
+# def src_dot_dst(src_field, dst_field, out_field):
+#     def func(edges):
+#         return {out_field: torch.matmul(edges.src[src_field], edges.dst[dst_field].transpose(-2, -1)).sum(-1, keepdim=True)}
+#     return func
 
-def scaled_exp(field, scale_constant):
-    def func(edges):
-        # clamp for softmax numerical stability
-        return {field: torch.exp((edges.data[field] / scale_constant).clamp(-5, 5))}
+# def scaled_exp(field, scale_constant):
+#     def func(edges):
+#         # clamp for softmax numerical stability
+#         #return {field: torch.exp((edges.data[field] / scale_constant).clamp(-5, 5))}
+#         return {field: F.softmax((edges.data[field] / scale_constant), dim=-2)}
 
-    return func
+#     return func
 
 """
     Single Attention Head
@@ -53,16 +54,31 @@ class MultiHeadAttentionLayer(nn.Module):
     
     def propagate_attention(self, g):
         # Compute attention score
-        g.apply_edges(src_dot_dst(self.K_st, self.Q_st, self.score_st)) #, edges)
-        g.apply_edges(scaled_exp(self.score_st, np.sqrt(self.out_dim)))
+        
+        g.apply_edges(self.src_dot_dst(self.K_st, self.Q_st, self.score_st)) #, edges)
+        g.apply_edges(self.scaled_exp(self.score_st, np.sqrt(self.out_dim)))
 
+        
         # Send weighted values to target nodes
         eids = g.edges()
 
         g.send_and_recv(eids, fn.u_mul_e(self.V_st, self.score_st, self.V_st), fn.sum(self.V_st, self.wV_st))
         g.send_and_recv(eids, fn.copy_edge(self.score_st, self.score_st), fn.sum(self.score_st, self.z_st))
 
-    
+
+    def src_dot_dst(self, src_field, dst_field, out_field):
+        def func(edges):
+            return {out_field: torch.matmul(edges.src[src_field], edges.dst[dst_field].transpose(-2, -1)).sum(-1, keepdim=True)}
+        return func
+
+    def scaled_exp(self, field, scale_constant):
+        def func(edges):
+            # clamp for softmax numerical stability
+            #return {field: torch.exp((edges.data[field] / scale_constant).clamp(-5, 5))}
+            return {field: F.softmax((edges.data[field] / scale_constant), dim=-2)}
+        return func
+
+
     def forward(self, g):
         
         if(self.input_names == 'node_attention_head') : 
