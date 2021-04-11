@@ -74,8 +74,8 @@ class MultiHeadAttentionLayer(nn.Module):
     def scaled_exp(self, field, scale_constant):
         def func(edges):
             # clamp for softmax numerical stability
-            #return {field: torch.exp((edges.data[field] / scale_constant).clamp(-5, 5))}
-            return {field: F.softmax((edges.data[field] / scale_constant), dim=-2)}
+            return {field: torch.exp((edges.data[field] / scale_constant).clamp(-5, 5))}
+            #return {field: F.softmax((edges.data[field] / scale_constant), dim=-2)}
         return func
 
 
