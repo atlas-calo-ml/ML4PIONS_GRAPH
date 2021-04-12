@@ -20,6 +20,13 @@ torch.manual_seed(0)
 
 import os, sys
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--model_name", help="choose the model type", type=str)
+args = parser.parse_args()
+
+model_name = args.model_name
+
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 cuda_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu' )
 
@@ -28,6 +35,7 @@ print('cuda_device : ', cuda_device)
 from modules.ML4Pions_Dataset import  MLPionsDataset_KNN, collate_graphs
 
 from modules.dynamic_graph import Dynamic_Graph_Model
+from modules.attention_graph import Graph_Attention_Model
 
 cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIGHT',
                'cluster_DM_WEIGHT', 'cluster_CENTER_MAG', 'cluster_FIRST_ENG_DENS', 
@@ -36,15 +44,23 @@ cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIG
 
 file_name_test = 'samples/ml4pions_test.root'
 
-test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=10)
+test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=-1)
 
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
-model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
+#model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
+if(model_name == 'edgeconv') : 
+    model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
+    model_name = 'model_DynamicGraph.pt'
+    out_name = 'PredictionFile_DynamicGraph.h5'
+else : 
+    model = Graph_Attention_Model(num_heads = 5, feature_dims = [10, 15, 12, 8], input_names=cluster_var)
+    model_name = 'model_AttentionGraph.pt'
+    out_name = 'PredictionFile_AttentionGraph.h5'
 #model = nn.DataParallel(model)
 model.to(cuda_device)
 
-model.load_state_dict(torch.load('model_DynamicGraph.pt'))
+model.load_state_dict(torch.load(model_name))
 
 param_numb = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print('Total parameters : ', param_numb)
@@ -91,7 +107,7 @@ print('total mean R : ', resp_tot.mean() )
 print('total std R : ', resp_tot.std() )
 
 
-hf = h5py.File('PredictionFile_DynamicGraph_S.h5', 'w')
+hf = h5py.File(out_name, 'w')
 
 hf.create_dataset('pred_energy', data=pred_energy, compression='lzf')
 hf.create_dataset('target_energy', data=target_energy, compression='lzf')
