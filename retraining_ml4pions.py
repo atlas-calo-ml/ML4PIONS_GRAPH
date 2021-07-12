@@ -59,6 +59,32 @@ else :
 #model = nn.DataParallel(model)
 model.to(cuda_device)
 
+model.load_state_dict(torch.load(model_name))
+
+param_numb = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print('Total parameters : ', param_numb)
+
+loss_fn = nn.MSELoss()
+loss_fn.to(cuda_device)
+
+valid_loss_min = 0.
+
+model.eval()
+with tqdm(valid_loader, ascii=True) as tq:
+    for gr, truth_calib in tq:
+        
+        gr, truth_calib = gr.to(cuda_device), truth_calib.to(cuda_device)
+        
+        pred_calib = model( gr )
+        
+        loss = loss_fn(truth_calib, pred_calib)
+        
+        valid_loss_min += loss.item()
+        
+        del gr; del truth_calib; del pred_calib;
+
+valid_loss_min = valid_loss_min/len(valid_loader.dataset)
+
 opt = optim.Adam(model.parameters(), lr=1e-3)
 
 # ---------------- Make the training loop ----------------- #
@@ -69,10 +95,7 @@ train_loss_v, valid_loss_v = [], []
 # number of epochs to train the model
 n_epochs = 100
 
-valid_loss_min = np.Inf # track change in validation loss
-
-loss_fn = nn.MSELoss()
-loss_fn.to(cuda_device)
+#valid_loss_min = np.Inf # track change in validation loss
 
 for epoch in tqdm(range(1, n_epochs+1)):
 
@@ -144,4 +167,4 @@ for epoch in tqdm(range(1, n_epochs+1)):
         torch.save(model.state_dict(), model_name)
         valid_loss_min = valid_loss
             
-# ---- end of script ------ # 
+# ---- end of script ------ #

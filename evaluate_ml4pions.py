@@ -42,21 +42,21 @@ cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIG
                'cluster_CENTER_LAMBDA', 'cluster_ISOLATION',  
               ]
 
-file_name_test = 'samples/ml4pions_test.root'
+file_name_test = 'samples/ml4pionsJet_test.root'
 
-test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=-1)
+test_data = MLPionsDataset_KNN(filename=file_name_test, k_val=5, cluster_var=cluster_var, num_ev=500)
 
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
 #model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
 if(model_name == 'edgeconv') : 
     model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
-    model_name = 'model_DynamicGraph.pt'
-    out_name = 'PredictionFile_DynamicGraph.h5'
+    model_name = 'model_DynamicGraphJet.pt'
+    out_name = 'PredictionFile_DynamicGraphJet.h5'
 else : 
     model = Graph_Attention_Model(num_heads = 5, feature_dims = [10, 15, 12, 8], input_names=cluster_var)
-    model_name = 'model_AttentionGraph.pt'
-    out_name = 'PredictionFile_AttentionGraph.h5'
+    model_name = 'model_AttentionGraphJet.pt'
+    out_name = 'PredictionFile_AttentionGraphJet.h5'
 #model = nn.DataParallel(model)
 model.to(cuda_device)
 
