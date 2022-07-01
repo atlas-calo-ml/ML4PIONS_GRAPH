@@ -71,7 +71,7 @@ track_var = ['trackPt',
 file_name_train = 'samples/ml4pions_training.root'
 file_name_valid = 'samples/ml4pions_validation.root'
 
-n_train, n_valid = 250000, 50000
+n_train, n_valid = 500000, 100000
 n_slice = 1000
 
 # train_data = MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var+track_var, nstart=0, nstop=1000)
