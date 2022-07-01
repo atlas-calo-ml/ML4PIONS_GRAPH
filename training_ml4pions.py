@@ -21,13 +21,15 @@ import os, sys
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_name", help="choose the model type", type=str)
+parser.add_argument("--dev", help="choose the device node", type=str)
 args = parser.parse_args()
 
 model_name = args.model_name
+device = args.dev
 
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-cuda_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu' )
+#os.environ["CUDA_VISIBLE_DEVICES"]=device#"0"
+cuda_device = torch.device('cuda:'+device if torch.cuda.is_available() else 'cpu' )
 
 print('cuda_device : ', cuda_device)
 
@@ -38,28 +40,67 @@ from modules.attention_graph import Graph_Attention_Model
 
 cluster_var = ['cluster_EM_PROBABILITY', 'cluster_HAD_WEIGHT', 'cluster_OOC_WEIGHT',
                'cluster_DM_WEIGHT', 'cluster_CENTER_MAG', 'cluster_FIRST_ENG_DENS', 
-               'cluster_CENTER_LAMBDA', 'cluster_ISOLATION',  
+               'cluster_CENTER_LAMBDA', 'cluster_ISOLATION'
               ]
 
-file_name_train = 'samples/ml4pionsJet_training.root'
-file_name_valid = 'samples/ml4pionsJet_validation.root'
+track_var = ['trackPt',
+             'trackP',
+             'trackMass',
+             'trackEta',
+             'trackPhi',
+             'trackNumberOfPixelHits',
+             'trackNumberOfSCTHits',
+             'trackNumberOfPixelDeadSensors',
+             'trackNumberOfSCTDeadSensors',
+#              'trackNumberOfPixelSharedHits',
+#              'trackNumberOfSCTSharedHits',
+#              'trackNumberOfPixelHoles',
+#              'trackNumberOfSCTHoles',
+             'trackNumberOfInnermostPixelLayerHits',
+             'trackNumberOfNextToInnermostPixelLayerHits',
+             'trackExpectInnermostPixelLayerHit',
+             'trackExpectNextToInnermostPixelLayerHit',
+             'trackNumberOfTRTHits',
+             'trackNumberOfTRTOutliers',
+             'trackChiSquared',
+             'trackNumberDOF',
+             'trackD0',
+             'trackZ0'
+            ]
 
-train_data = MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var, num_ev=500)
-valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=cluster_var, num_ev=200)
+file_name_train = 'samples/ml4pions_training.root'
+file_name_valid = 'samples/ml4pions_validation.root'
 
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=5, shuffle=True,collate_fn=collate_graphs, num_workers=0)
-valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=5, shuffle=False,collate_fn=collate_graphs, num_workers=0)
+n_train, n_valid = 250000, 50000
+n_slice = 1000
+
+# train_data = MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var+track_var, nstart=0, nstop=1000)
+# valid_data = MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=cluster_var+track_var, nstart=0, nstop=1000)
+
+train_data = torch.utils.data.ConcatDataset([
+            MLPionsDataset_KNN(filename=file_name_train, k_val=5, cluster_var=cluster_var+track_var, nstart=i, nstop=i+n_slice)\
+            for i in range( 0, n_train, n_slice )            
+    ])
+
+valid_data = torch.utils.data.ConcatDataset([
+            MLPionsDataset_KNN(filename=file_name_valid, k_val=5, cluster_var=cluster_var+track_var, nstart=i, nstop=i+n_slice)\
+            for i in range( 0, n_valid, n_slice ) 
+    ])
+
+train_loader = DataLoader(train_data, batch_size=100, shuffle=True,collate_fn=collate_graphs, num_workers=0)
+valid_loader = DataLoader(valid_data, batch_size=100, shuffle=False,collate_fn=collate_graphs, num_workers=0)
 
 if(model_name == 'edgeconv') : 
-    model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8])
-    model_name = 'model_DynamicGraphJet.pt'
+    #model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 7, 5], feature_dims_en = [4, 5, 6, 8], input_names=cluster_var+track_var)
+    model = Dynamic_Graph_Model(feature_dims_x = [8, 9, 10, 7, 5], feature_dims_en = [4, 5, 7, 6, 8], input_names=cluster_var+track_var)
+    model_name = 'model_DynamicGraphTP.pt'
 else : 
-    model = Graph_Attention_Model(num_heads = 5, feature_dims = [10, 15, 12, 8], input_names=cluster_var)
-    model_name = 'model_AttentionGraphJet.pt'
+    model = Graph_Attention_Model(num_heads = 5, feature_dims = [10, 15, 12, 10, 8], input_names=cluster_var+track_var)
+    model_name = 'model_AttentionGraphTP.pt'
 #model = nn.DataParallel(model)
 model.to(cuda_device)
 
-opt = optim.Adam(model.parameters(), lr=1e-3)
+opt = optim.AdamW(model.parameters(), lr=1e-3)
 
 # ---------------- Make the training loop ----------------- #
 
@@ -67,7 +108,7 @@ train_loss_v, valid_loss_v = [], []
 
 
 # number of epochs to train the model
-n_epochs = 100
+n_epochs = 300
 
 valid_loss_min = np.Inf # track change in validation loss
 
