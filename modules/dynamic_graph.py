@@ -36,13 +36,13 @@ class EdgeConv(nn.Module):
         
         self.theta_en = build_mlp(inputsize  = in_feat_en,\
                                   outputsize = out_feat_en,\
-                                  features = [64, 128, 32],\
+                                  features = [40, 30, 20, 10],\
                                   add_batch_norm = batch_norm
                                   )
         
         self.phi_en   = build_mlp(inputsize  = in_feat_en,\
                                   outputsize = out_feat_en,\
-                                  features = [64, 128, 32],\
+                                  features = [40, 30, 20, 10],\
                                   add_batch_norm = batch_norm
                                   )
 
@@ -105,8 +105,10 @@ class EdgeConv(nn.Module):
 
 # --- the full dynamic edgeconv model ---- #
 class Dynamic_Graph_Model(nn.Module):
-    def __init__(self, feature_dims_x, feature_dims_en):
+    def __init__(self, feature_dims_x, feature_dims_en, input_names):
         super(Dynamic_Graph_Model, self).__init__()
+
+        self.initial_feat = input_names
 
         self.n_layers = len(feature_dims_x)-1
         
@@ -114,7 +116,7 @@ class Dynamic_Graph_Model(nn.Module):
 
         self.layer_list.append( 
 
-                        EdgeConv(in_feat_x = 3, out_feat_x = feature_dims_x[0], in_feat_en = 11,\
+                        EdgeConv(in_feat_x = 3, out_feat_x = feature_dims_x[0], in_feat_en = len(self.initial_feat) + 3,\
                                  out_feat_en = feature_dims_en[0])
          )
 
@@ -130,7 +132,7 @@ class Dynamic_Graph_Model(nn.Module):
 
         self.latent_project = build_mlp(inputsize = sum(feature_dims_en),\
                                         outputsize = 1,\
-                                        features = [64, 128, 32]
+                                        features = [20, 15, 10, 5]
                                         )
                  
     # -- the forward function -- #

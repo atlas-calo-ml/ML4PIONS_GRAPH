@@ -39,6 +39,7 @@ layer_name = {'PreSamplerB' : [0, 1540.00],
 
 cluster_var_dict_musig = {
     
+    'cluster_e_' : {'mean': 217.2536030809038, 'std': 335.4177626448296} ,
     'cluster_EM_PROBABILITY'  :  {'mean': 0.13739075, 'std': 0.23810464} ,
     'cluster_HAD_WEIGHT'  :  {'mean': 1.0977454, 'std': 0.105446674} ,
     'cluster_OOC_WEIGHT'  :  {'mean': 1.3992951, 'std': 0.43550345} ,
@@ -66,7 +67,7 @@ cluster_var_dict_musig = {
     'trackNumberDOF'  :  {'mean': 34.92943458153066, 'std': 12.928489800018584} ,
     'trackD0'  :  {'mean': -0.011262955, 'std': 1.268558} ,
     'trackZ0'  :  {'mean': -0.49036446, 'std': 43.61} ,
-    'truthPartE'  :  {'mean': 215.88905, 'std': 411.5805}
+    'truthPartE'  :  {'mean': 324.16019827205093, 'std': 465.8594184884767}
 }
 
 # --- K_NN graph dataclass ----------------#
@@ -343,6 +344,105 @@ class MLPionsDataset_KNN(Dataset):
 
 # -------------------------------------------------- #
 
+# -- dataset for Set based model --- #
+
+class MLPionsDataset_Set(Dataset):
+    def __init__(self, filename, cluster_var, track_var, nstart, nstop, cluster_var_dict_musig=cluster_var_dict_musig):
+        
+        self.f = pd.read_hdf(filename)
+        self.cluster_var = cluster_var
+        self.track_var = track_var
+        
+        self.cluster_var_dict_musig = cluster_var_dict_musig
+        
+        self.nstart = nstart
+        self.nstop = nstop
+        
+        if(self.nstop - self.nstart) > len(self.f.index) : 
+            self.nstop = self.nstart + len(self.f.index)
+
+        self.n_events = self.nstop - self.nstart
+
+        #self.cluster_var_dict_musig = cluster_var_dict_musig
+
+
+        
+        self.all_graphs = []
+
+
+        for i in tqdm(range( self.nstart, self.nstop, 1 )):
+            event_dict = self.get_single_event(i)
+            #if(event_dict['truth_E'].item() >=0. ) : 
+            self.all_graphs.append(event_dict)
+    
+#         self.n_eff = len(self.all_graphs)
+    
+    def get_single_event(self,event_idx):
+
+        # ------- building the cluster graph ---------- #
+        
+        NClus, NClus_Max = 0, 25
+        
+        for ic in range(NClus_Max) : 
+            if(self.f["cluster_e_%i" % (ic)].to_numpy()[event_idx] > 0.) : 
+                NClus += 1
+            
+        if(NClus == 0) : 
+            #print('Empty cluster event')
+            #ev_flag = -1
+            return {'gr' : [dgl.rand_graph(2,1)], 'truth_E' : torch.tensor([-9999999.])}
+        
+        gr = dgl.rand_graph(NClus, 0)
+        
+        # -- making the cluster variables -- #
+        var_val = []
+
+        for ic in range(NClus) : 
+
+            var_val_clus = []
+            for var in self.cluster_var : 
+
+                # var_val_clus.append( ( self.f[var + str(ic)].to_numpy()[event_idx] - self.cluster_var_dict_musig[var]['mean'])/self.cluster_var_dict_musig[var]['std']
+                #                    )
+                var_val_clus.append( ( self.f[var + str(ic)].to_numpy()[event_idx] )
+                                   )
+
+            var_val.append(torch.tensor(var_val_clus))
+            
+        var_val = torch.stack(var_val, dim=0)
+        
+        track_val = torch.stack(
+            [ torch.repeat_interleave( torch.tensor( [ (self.f[var].to_numpy()[event_idx] - self.cluster_var_dict_musig[var]['mean'])/self.cluster_var_dict_musig[var]['std'] ] ).reshape(1,) , NClus, dim=0)\
+              for var in self.track_var ]
+            , dim=1)
+        
+
+        clus_track_val = torch.cat([var_val, track_val], dim=1)
+        
+        gr.ndata['en'] = clus_track_val.float()
+        
+        #truthE = torch.tensor( [ (self.f['truth_particle_e'].to_numpy()[event_idx] - self.cluster_var_dict_musig['truthPartE']['mean'] )/self.cluster_var_dict_musig['truthPartE']['std'] ]).float()
+        truthE = torch.tensor( [ (self.f['truth_particle_e'].to_numpy()[event_idx]) ] ).float()
+        
+        return {'gr' : gr, 'truth_E' : truthE}
+        
+        
+    
+
+    def __len__(self):
+
+            #if(self.num_ev == -1) : 
+            #return self.n_eff 
+            # else : 
+            return self.n_events
+        
+    def __getitem__(self, idx):
+
+            return self.all_graphs[idx]
+            #return self.get_single_event(idx)
+
+# ----------------------------------------------------- #
+
 
 def collate_graphs(event_list) : 
     
@@ -358,11 +458,13 @@ def collate_graphs(event_list) :
         #energy_list.append(event_list[ib]['truth_E'])
         
         #for i in range(len(gr_list)) : 
-        if( tr_elist.item() >=0. ) : 
+        if( tr_elist.item() > -9999999. ) : 
             full_gr_list.append(gr_list)
             energy_list.append(tr_elist)
+            
+    energy_list = torch.tensor(energy_list)
                   
-    return dgl.batch(full_gr_list), torch.tensor(energy_list)
+    return dgl.batch(full_gr_list), energy_list.reshape(energy_list.shape[0], 1)
 
 def collate_graphs_eta(event_list) : 
     
@@ -389,3 +491,5 @@ def collate_graphs_eta(event_list) :
             eta_list.append(event_list[ib]['truth_eta'])
                   
     return dgl.batch(full_gr_list), torch.tensor(energy_list), torch.tensor(eta_list)
+
+
